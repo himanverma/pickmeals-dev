@@ -9,6 +9,14 @@
 /dist
 /tags
 *.mo
+/app/webroot/files/company_logo/
+/app/webroot/files/dish_images/
+/app/webroot/files/profile_image/
+/app/webroot/files/recipe_images/
+/app/webroot/files/splash/
+/app/webroot/files/thali_images/
+/app/webroot/files/vendor_photo/
+error_log
 pickmeals.csr
 pickmeals.key
 
