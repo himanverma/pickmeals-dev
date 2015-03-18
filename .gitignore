@@ -9,6 +9,7 @@
 /dist
 /tags
 *.mo
+/app/webroot/files/company_logo.zip
 /app/webroot/files/company_logo/
 /app/webroot/files/dish_images/
 /app/webroot/files/profile_image/
