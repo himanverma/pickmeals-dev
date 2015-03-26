@@ -167,7 +167,7 @@ class OrdersController extends AppController {
                     ),
                     '_serialize' => array('data')
                 ));
-                $this->sendSms($x[0]['Address']['phone_number'], "Dear " . $x[0]['Address']['f_name'] . " " . $x[0]['Address']['l_name'] . " Thanks for placing Order ID:" . $x[0]['Order']['sku'] . ". Your order (".$x[0]['Order']['recipe_names'].") will be delivered within 45 minutes.");
+                $this->sendSms($x[0]['Address']['phone_number'], "Dear " . $x[0]['Address']['f_name'] . " " . $x[0]['Address']['l_name'] . ", Thanks for placing order. Your Order" . $x[0]['Order']['sku'] . ". Your order (".$x[0]['Order']['recipe_names'].") will be delivered within 45 minutes.");
             } else {
                 $this->set(array(
                     'data' => array(
@@ -234,8 +234,9 @@ class OrdersController extends AppController {
                     $ttl += $rt['Combination']['price'] * $rt['Order']['qty'];
                     
                     
-                    $this->Combination->updateAll(array(   //-------- Update Stock
-                        "Combination.stock_count" => "'".$rt['Combination']['stock_count'] - $rt['Order']['qty']."'"
+                    $ComboObj = new Combination();
+                    $ComboObj->updateAll(array(   //-------- Update Stock
+                        "Combination.stock_count" => "'".((int)$rt['Combination']['stock_count'] - (int)$rt['Order']['qty'])."'"
                     ), array(
                        "Combination.id" => $rt['Combination']['id'] 
                     ));
@@ -627,7 +628,7 @@ class OrdersController extends AppController {
             $odrTxt .= $es['Order']['recipe_names'].", ";
         }
         $odrTxt = rtrim($odrTxt,", ");
-        $this->sendSms($mobile_num, "Dear " . $orders[0]['Address']['f_name'] . " " . $orders[0]['Address']['l_name'] . " Thanks for placing Order ID:" . $orderId . ". Your order (".$odrTxt.") will be delivered within 45 minutes.");
+        $this->sendSms($mobile_num, "Dear " . $orders[0]['Address']['f_name'] . " " . $orders[0]['Address']['l_name'] . ", Thanks for placing order. Your Order" . $orderId . ". Your order (".$odrTxt.") will be delivered within 45 minutes.");
         $this->set("orders", $orders);
     }
 
@@ -679,6 +680,19 @@ class OrdersController extends AppController {
         file_put_contents("f.txt", $txt . "\n=====\n" . $old);
         $this->autoRender = false;
         $this->response->body($txt);
+    }
+    
+    
+    public function respond(){
+        $d = $this->request->data;
+        $this->Order->updateAll(array(
+            "Order.responded" => "'1'"
+        ),array(
+            "Order.sku" => $d['sku']
+        ));
+        $this->autoRender = false;
+        $this->response->type('json');
+        $this->response->body(json_encode(array("error"=>0,"msg"=>"Status Updated...")));
     }
 
 }

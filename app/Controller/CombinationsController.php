@@ -37,6 +37,7 @@ class CombinationsController extends AppController {
         $long = $this->request->data['User']['longitude'];
         $count = $this->request->data['User']['count'];
         $cnd = array(
+                "Combination.stock_count > " => 0,
                 "Combination.visible" => 1,
                 "Combination.type" => "MAIN",
                 "DATE(Combination.date) >= " => $this->_since, // date("Y-m-d"),
@@ -44,6 +45,7 @@ class CombinationsController extends AppController {
             );
         if($lat == 0 || $long == 0){
             $cnd = array(
+                "Combination.stock_count > " => 0,
                 "Combination.type" => "MAIN",
                 "Combination.visible" => 1,
                 "DATE(Combination.date) >= " => $this->_since // date("Y-m-d"),
@@ -94,12 +96,14 @@ class CombinationsController extends AppController {
         $long = $this->request->data['User']['longitude'];
         if($lat == 0.0 || $long == 0.0){
             $cnd = array(
+                "Combination.stock_count > " => 0,
                 "Combination.type" => "MAIN",
                 "Combination.visible" => 1,
                 "DATE(Combination.date) >= " => $this->_since//date("Y-m-d"),
             );
         }else{
             $cnd = array(
+                "Combination.stock_count > " => 0,
                 "Combination.type" => "MAIN",
                 "Combination.visible" => 1,
                 "DATE(Combination.date) >= " => $this->_since,//date("Y-m-d"),
@@ -498,6 +502,47 @@ class CombinationsController extends AppController {
             echo 'done';
             exit;
         }
+    }
+    
+    
+    public function api_availability(){
+        $d = $this->request->data;
+        $af = array();
+        $flag = 0;
+        foreach($d as $er){
+            $x = $this->Combination->find("first",array(
+                "conditions" => array(
+                    "Combination.id" => $er['Order']['combination_id'],
+                    "Combination.stock_count <" => $er['Order']['qty']
+                ),
+                "contain" => false
+            ));
+            if(!empty($x)){
+                $flag = 1;
+                $af[] = array(
+                    "Order" => $x['Combination']
+                    );
+            }
+        }
+        
+        
+        $res = array(
+            "error" => $flag,
+            "Orders" => $af,
+//            "msg" => "All Combinations are available..."
+        );
+        ob_start();
+        print_r($res);
+        $dt = ob_get_contents();
+        ob_flush();
+        file_put_contents("tds.txt", $dt);
+        
+        $this->set(array(
+            'data' => $res,
+            '_serialize' => array('data')
+        ));
+        
+        
     }
 
 }

@@ -13,10 +13,17 @@ class DashboardController extends AppController {
     public $_since = "2015-2-19";
     public function beforeFilter() {
         parent::beforeFilter();
-        $this->Auth->allow(array('login'));
+        $this->Auth->allow(array('sdkfix','login','cordova','getNotRespondedOrders'));
     }
     
-    public function login(){
+    public function sdkfix(){
+        $this->layout = "sdk8fix";
+    }
+
+        public function login(){
+        if($this->Auth->user()){
+            $this->redirect("/Dashboard");
+        }
         $this->layout = "login";
     }
 
@@ -116,13 +123,21 @@ class DashboardController extends AppController {
                 $eodrs[] = $this->Order->find("first",array(
                     "conditions" => array(
                         "Order.id" => $this->Order->getLastInsertID()
-                    )
+                    ),
+                    "contain" => array("Address", "Combination", "Combination.Vendor")
                 ));
             }
             
             $ttl = 0;
             foreach($eodrs as $rt){
                 $ttl += $rt['Combination']['price'] * $rt['Order']['qty'];
+                
+                $ComboObj = new Combination();
+                    $ComboObj->updateAll(array(   //-------- Update Stock
+                        "Combination.stock_count" => "'".((int)$rt['Combination']['stock_count'] - (int)$rt['Order']['qty'])."'"
+                    ), array(
+                       "Combination.id" => $rt['Combination']['id'] 
+                    ));
             }
             
             $cashToPay = $eodrs[0]['Combination']['price'];
@@ -166,7 +181,7 @@ class DashboardController extends AppController {
                     ->viewVars($viewVars)
                     ->from("no-reply@pickmeals.com", "PickMeals.com")
                     ->replyTo("support@pickmeals.com", "PickMeals.com")
-                    ->subject("New Order on PickMeals.com (ID :" . $x[0]['Order']['sku'] . ")")
+                    ->subject("New Order on PickMeals.com (ID :" . $eodrs[0]['Order']['sku'] . ")")
                     ->template("referal")
                     ->emailFormat('html');
             try {
@@ -174,7 +189,7 @@ class DashboardController extends AppController {
             } catch (SocketException $e) {
                 debug($e);
             }
-            $this->sendSms($customer['Customer']['mobile_number'], "Dear " . $customer['Customer']['name'] . " " . $eodrs[0]['Order']['recipe_names']." will be delivered within 45 minutes.");
+            $this->sendSms($customer['Customer']['mobile_number'], "Dear " . $customer['Customer']['name'] . ", Thanks for placing order. Your Order " . $eodrs[0]['Order']['recipe_names']." will be delivered within 45 minutes.");
             $this->autoRender = FALSE;
             $this->response->type('json');
             $this->response->body(json_encode(array(
@@ -188,7 +203,7 @@ class DashboardController extends AppController {
         
         $cnd = array(
             "Combination.type" => "MAIN",
-            //"Combination.visible" => 1,
+            "Combination.visible" => 1,
             "DATE(Combination.date) >= " => $this->_since // date("Y-m-d"),
                 //"get_distance_in_miles_between_geo_locations($lat,$long,Vendor.lat,Vendor.long) <=" => 3.73
         );
@@ -216,7 +231,24 @@ class DashboardController extends AppController {
         
         
     }
-    
+    public function cordova(){
+        
+    }
+    public function getNotRespondedOrders(){
+        $this->loadModel('Order');
+        $nOrders = $this->Order->find("all",array(
+            "conditions" => array(
+                "Order.responded" => 0
+            ),
+            "group" => "Order.sku",
+            "order" => "Order.id"
+        ));
+        $this->autoRender = false;
+        $this->response->type('json');
+        $this->response->body(json_encode(json_encode($nOrders)));
+    }
+
+
     public function t(){
         
         print_r("P-".$d);
